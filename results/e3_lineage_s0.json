@@ -1,0 +1,6 @@
+{
+  "final_mean_distance": 0.025224139913916588,
+  "separation_growth": 0.025224020704627037,
+  "monotone_pair_fraction": 0.2142857164144516,
+  "verdict": "NOT SUPPORTED -- clusters re-merge"
+}
