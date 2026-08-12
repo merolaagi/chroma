@@ -28,6 +28,22 @@ One currency flows through all three: **prediction error in latent space**.
 
 ---
 
+## Start here: the plain-language explainer
+
+**[docs/CHROMA-explained.pdf](docs/CHROMA-explained.pdf)** — six pages, four
+diagrams, no mathematics assumed. It uses a warehouse picking robot as the
+running example and includes the scoreboard of which claims currently hold and
+which do not.
+
+Rebuild it from source with:
+
+```bash
+pip install reportlab svglib
+python docs/make_figures.py && python docs/build_pdf.py
+```
+
+---
+
 ## Spec-to-code map
 
 | Spec | File | Key object |
