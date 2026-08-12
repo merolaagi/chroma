@@ -268,6 +268,27 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### A confound found mid-sweep (2026-08-12)
+
+The first full-scale E1 run drove prediction error to ~1e-4 by step 10,000, with
+vote disagreement at ~2e-4. Instrumenting the world explained why: the binary
+3x3 tactile patch admits 512 readings and a run actually sees **26 of them**.
+The encoder memorises a lookup table, and every error-driven mechanism in the
+architecture is then fed a signal that is identically zero.
+
+That invalidates the pilot conclusion as stated. The three E1 arms may have tied
+because none of them was doing anything, which is a different finding from the
+regulatory layer being useless.
+
+Fix: `TactileWorld` now softens shapes to graded contact values, adds sensor
+noise, and widens the pose range. Distinct observations go from 26 to 3,200. The
+trainer prints a `DEGENERATE` warning whenever mean error falls below
+`TrainConfig.err_floor`, so a future run says so rather than producing a
+confident tie.
+
+Not yet demonstrated: that error stays informative all the way to 20k steps.
+That needs the long run, with the warning watched.
+
 ### Still to run
 
 E2 (attractor count vs. hidden regime count) and the full-scale E1/E3.

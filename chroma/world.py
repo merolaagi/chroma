@@ -23,6 +23,7 @@ import math
 
 import torch
 from torch import Tensor
+import torch.nn.functional  # noqa: F401
 
 from .groups import GroupAction
 
@@ -76,12 +77,16 @@ class TactileWorld:
 
     def __init__(self, n_regimes: int = 3, objs_per_regime: int = 4,
                  canvas: int = 16, patch: int = 3, n_sensors: int = 8,
-                 n_rot: int = 8, seed: int = 0):
+                 n_rot: int = 8, seed: int = 0, graded: bool = True,
+                 sensor_noise: float = 0.02, pose_range: int = 4):
         self.n_regimes, self.opr = n_regimes, objs_per_regime
         self.N, self.P, self.n_sensors, self.n_rot = canvas, patch, n_sensors, n_rot
+        self.graded, self.sensor_noise, self.pose_range = graded, sensor_noise, pose_range
         self.g = torch.Generator().manual_seed(seed)
         self.n_objects = n_regimes * objs_per_regime
         self.canvases = self._build()
+        if graded:
+            self.canvases = self._soften(self.canvases)
         self.sensor_offsets = self._sensor_layout()
         self.regime = 0
 
@@ -96,6 +101,28 @@ class TactileWorld:
                 fam(c, k)
                 out[r * self.opr + k] = c
         return out
+
+    @staticmethod
+    def _soften(c: Tensor) -> Tensor:
+        """Blur the binary shapes into graded contact values.
+
+        Binary 3x3 patches admit only 512 distinct readings, and in practice a
+        run sees about 26 of them. The encoder then memorises a lookup table,
+        prediction error collapses to ~1e-4, and every error-driven mechanism in
+        the architecture -- differentiation, vote confidence, the regulatory
+        input u -- is fed a signal that is identically zero. The E1 arms then
+        tie because none of them is doing anything, which is not the same
+        finding as the regulatory layer being useless.
+
+        Softening the edges makes the observation manifold continuous and gives
+        the fast loop something real to predict.
+        """
+        k = torch.tensor([[0.5, 1.0, 0.5],
+                          [1.0, 2.0, 1.0],
+                          [0.5, 1.0, 0.5]]) / 8.0
+        out = torch.nn.functional.conv2d(
+            c.unsqueeze(1), k.view(1, 1, 3, 3), padding=1).squeeze(1)
+        return out / out.amax(dim=(1, 2), keepdim=True).clamp(min=1e-6)
 
     def _sensor_layout(self) -> list[GroupAction]:
         """Fixed, known relative sensor poses -- the precondition for voting."""
@@ -137,6 +164,9 @@ class TactileWorld:
                 patch[ys0 - y0:ys1 - y0, xs0 - x0:xs1 - x0] = c[ys0:ys1, xs0:xs1]
             q = (int(j[b]) // 2) % 4                          # C_4 -> exact rot90
             out[b] = torch.rot90(patch, -q, (0, 1)).reshape(-1)
+        if self.sensor_noise:
+            out = out + self.sensor_noise * torch.randn(
+                out.shape, generator=self.g)
         return out
 
     # --------------------------------------------------------------- actions

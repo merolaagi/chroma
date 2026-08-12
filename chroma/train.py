@@ -39,6 +39,7 @@ class TrainConfig:
     log_every: int = 500
     deep_log_every: int = 2500
     grad_clip: float = 1.0
+    err_floor: float = 1e-3     # below this the error signal is uninformative
 
 
 class Trainer:
@@ -70,7 +71,8 @@ class Trainer:
         e = m.expression()
 
         # agent's own pose in the object frame
-        pose = GroupAction(torch.randint(-2, 3, (1, 2)).float(),
+        r = getattr(w, "pose_range", 2)
+        pose = GroupAction(torch.randint(-r, r + 1, (1, 2)).float(),
                            torch.randint(0, 4, (1,)) * 2)
         m.bus.reset()
 
@@ -201,6 +203,16 @@ class Trainer:
                                 disagree=out["disagree"],
                                 switch_rate=self.switch_events / max(self.t, 1),
                                 regime=self.world.regime)
+                    if snap["err"] < tc.err_floor:
+                        snap["DEGENERATE"] = True
+                        print("  !! prediction error below the floor "
+                              f"({snap['err']:.2e} < {tc.err_floor:.0e}). Every "
+                              "error-driven mechanism -- differentiation, vote "
+                              "confidence, the regulatory input u -- is now being "
+                              "fed ~zero. E1 arms will tie because none of them "
+                              "is doing anything. Raise task difficulty "
+                              "(TactileWorld graded/sensor_noise/pose_range) "
+                              "before trusting this run.")
                     self.log.append(snap)
                     print(f"[{self.t:6d}] {phase:14s} loss={out['loss']:.4f} "
                           f"err={out['err']:.4f} dis={out['disagree']:.4f} "
