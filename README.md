@@ -1,6 +1,6 @@
 # CHROMA
 
-[![propositions](https://github.com/merolaagi/chroma-arch/actions/workflows/tests.yml/badge.svg)](https://github.com/merolaagi/chroma-arch/actions/workflows/tests.yml)
+[![propositions](https://github.com/merolaagi/chroma/actions/workflows/tests.yml/badge.svg)](https://github.com/merolaagi/chroma/actions/workflows/tests.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Chromatin-Regulated Hierarchy of Reference-frame Object Modules with Action-conditioned prediction**

@@ -123,7 +123,7 @@ def build():
              "sub")]
     st += [table([["Status", "Research pilot. Sections 1&ndash;3 proved and "
                              "confirmed; Section 4 failing its own tests."],
-                  ["Code", "github.com/merolaagi/chroma-arch &mdash; MIT licence"],
+                  ["Code", "github.com/merolaagi/chroma &mdash; MIT licence"],
                   ["Audience", "No mathematics assumed."]],
                  [30 * mm, W - 30 * mm], header=False)]
     st += [Spacer(1, 6 * mm)]
@@ -331,8 +331,8 @@ def build():
                           borderPadding=(8, 8, 8, 8), spaceBefore=4,
                           spaceAfter=6)
     st += [Paragraph(
-        "git clone https://github.com/merolaagi/chroma-arch<br/>"
-        "cd chroma-arch &amp;&amp; pip install torch<br/>"
+        "git clone https://github.com/merolaagi/chroma<br/>"
+        "cd chroma &amp;&amp; pip install torch<br/>"
         "PYTHONPATH=. python tests/test_propositions.py<br/>"
         "python experiments/e1_to_e4.py e4<br/>"
         "python run_e1_chunk.py chroma 20000 0<br/>"

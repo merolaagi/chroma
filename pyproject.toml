@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "chroma-arch"
+name = "chroma-arch"  # distribution name; verify availability before publishing to PyPI
 version = "0.1.0"
 description = "Reference-frame JEPA modules under a gene-regulatory slow state"
 readme = "README.md"
@@ -22,8 +22,8 @@ classifiers = [
 dependencies = ["torch>=2.1"]
 
 [project.urls]
-Homepage = "https://github.com/merolaagi/chroma-arch"
-Issues = "https://github.com/merolaagi/chroma-arch/issues"
+Homepage = "https://github.com/merolaagi/chroma"
+Issues = "https://github.com/merolaagi/chroma/issues"
 
 [tool.setuptools.packages.find]
 include = ["chroma*"]

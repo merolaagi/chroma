@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Bhattarai
     given-names: Manish
-repository-code: "https://github.com/merolaagi/chroma-arch"
+repository-code: "https://github.com/merolaagi/chroma"
 license: MIT
 version: 0.1.0
 date-released: 2026-08-12
