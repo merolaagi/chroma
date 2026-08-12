@@ -1,0 +1,11 @@
+arm                                 n        switch rate         mean err  basins
+CHROMA (recurrence + basins)        2  0.00234 +/-0.00022  0.07165 +/-0.01644     6.0
+flat landscape (recurrence only)    2  0.00250 +/-0.00000  0.07066 +/-0.01402     1.0
+MLP (neither)                       2  0.01078 +/-0.00685  0.07902 +/-0.03161     1.0
+
+switch-rate ratio  ablate_hysteresis    / chroma =   1.07x
+switch-rate ratio  ablate_grn           / chroma =   4.60x
+
+Pre-registered threshold: ratio > 5x for the regulatory layer to earn its keep.
+If ablate_hysteresis ~= chroma, the credit belongs to slow integration, not
+to multistability, and Section 4.1 overclaims.

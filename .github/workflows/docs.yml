@@ -1,0 +1,21 @@
+name: docs in sync
+on: [push, pull_request]
+jobs:
+  figures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install reportlab svglib
+      - name: regenerate figures from committed results
+        run: python docs/make_figures.py
+      - name: fail if the committed figures are stale
+        run: |
+          if ! git diff --quiet -- docs/figures; then
+            echo "docs/figures is out of date with results/."
+            echo "Run: python docs/make_figures.py && python docs/build_pdf.py"
+            git --no-pager diff --stat -- docs/figures
+            exit 1
+          fi

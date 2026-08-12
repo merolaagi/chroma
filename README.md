@@ -44,6 +44,32 @@ python docs/make_figures.py && python docs/build_pdf.py
 
 ---
 
+## Iterating
+
+One command per iteration. It refuses to ship if a proposition test fails,
+because a failing proposition means a claim in this README or in the explainer
+PDF has become false.
+
+```bash
+make ship M="what changed"     # verify -> rebuild docs -> commit -> push
+make dry  M="what changed"     # same, but stop before pushing
+make test                      # proposition suite only
+make docs                      # regenerate figures + PDF from results/
+make results                   # full E1 sweep, 5 seeds x 3 arms (overnight)
+```
+
+`docs/figures/fig4_e1_bars.svg` is generated from whatever is in `results/`, not
+hand-written. Re-run an experiment and the figure, its caption, and the PDF all
+update to match — including the verdict line, which flips from "the distinct
+modes add nothing" to "the distinct modes are doing work" if the numbers ever
+separate. The document cannot silently drift from the evidence.
+
+Two CI checks run on every push: the proposition suite must print `ALL PASS`,
+and the committed figures must match what `make_figures.py` regenerates from the
+committed results.
+
+---
+
 ## Spec-to-code map
 
 | Spec | File | Key object |

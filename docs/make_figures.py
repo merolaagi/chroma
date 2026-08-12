@@ -4,8 +4,11 @@ Written as plain SVG with inline attributes (no CSS classes, no variables) so
 that svglib can convert them faithfully into ReportLab drawings.
 """
 
+import json
+import statistics as stat
 from pathlib import Path
 
+RESULTS = Path(__file__).parent.parent / "results"
 OUT = Path(__file__).parent / "figures"
 OUT.mkdir(exist_ok=True)
 
@@ -140,14 +143,37 @@ def fig_loop_closure():
 
 
 # ---------------------------------------------------------------- figure 4
+def read_e1():
+    """Live switch rates from results/e1_*.json, averaged over seeds.
+
+    The figure is generated from whatever runs are on disk, so re-running the
+    experiment and rebuilding the PDF keeps the document honest automatically.
+    Falls back to the pilot numbers if no results are present.
+    """
+    arms = [("chroma", "Full system", TEAL),
+            ("ablate_hysteresis", "Slow dial, no distinct modes", TEAL),
+            ("ablate_grn", "No slow dial at all", RED)]
+    fallback = {"chroma": 0.00234, "ablate_hysteresis": 0.00250,
+                "ablate_grn": 0.01078}
+    out, n_seeds = [], 0
+    for key, label_, col in arms:
+        files = sorted(RESULTS.glob(f"e1_{key}_s*.json")) if RESULTS.is_dir() else []
+        if files:
+            vals = [json.loads(f.read_text())["switch_rate"] for f in files]
+            v = stat.mean(vals)
+            n_seeds = max(n_seeds, len(vals))
+        else:
+            v = fallback[key]
+        out.append((label_, v, col))
+    return out, n_seeds
+
+
 def fig_e1_bars():
     """Three-arm switch rate. Lower is better (more stable regime identity)."""
     s = head(320, "Experiment E1: three-arm ablation")
-    vals = [("Full system", 0.00234, TEAL),
-            ("Slow dial, no distinct modes", 0.00250, TEAL),
-            ("No slow dial at all", 0.01078, RED)]
+    vals, n_seeds = read_e1()
     x0, base, maxw = 300, 70, 300
-    vmax = 0.012
+    vmax = max(v for _, v, _ in vals) * 1.12 or 0.012
     for i, (name, v, c) in enumerate(vals):
         y = base + i * 70
         w = max(6, maxw * v / vmax)
@@ -155,12 +181,15 @@ def fig_e1_bars():
               f'fill="{c["fill"]}" stroke="{c["stroke"]}" stroke-width="0.8"/>')
         s += label(x0 - 12, y + 22, name, 11, "end", "#2C2C2A")
         s += label(x0 + w + 10, y + 22, f"{v:.5f}", 11, "start", c["stroke"])
+    tie = abs(vals[0][1] - vals[1][1]) < 0.25 * max(vals[0][1], 1e-9)
     s += label(340, 285,
-               "Instability of module identity (lower is better).",
-               11, "middle")
+               "Instability of module identity (lower is better)."
+               + (f" {n_seeds} seeds." if n_seeds else ""), 12.5, "middle")
     s += label(340, 303,
-               "Rows 1 and 2 are indistinguishable - the distinct modes add nothing.",
-               11, "middle")
+               "Rows 1 and 2 are indistinguishable - the distinct modes add nothing."
+               if tie else
+               "Rows 1 and 2 differ - the distinct modes are doing work.",
+               12.5, "middle")
     return s + "</svg>"
 
 
