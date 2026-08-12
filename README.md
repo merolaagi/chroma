@@ -70,6 +70,54 @@ committed results.
 
 ---
 
+## The hypercube retarget (`chroma/hypercube.py`)
+
+Same architecture, different group. On a combinatorially complete fitness
+landscape the group is `(Z/2)^L` — genotypes in `{0,1}^L`, mutations acting by
+XOR — and `ρ(d)` is the diagonal matrix of Walsh characters. Every proposition
+from the SE(2) case holds here, and holds *exactly* rather than to float
+precision, because the character values are ±1.
+
+| SE(2) / tactile | (Z/2)^L / fitness landscape |
+|---|---|
+| `ρ(d)` rigid transport | additive (non-epistatic) mutation effects |
+| `Δ_φ` non-rigid residual | epistasis |
+| closed path must return | double-mutant cycle — the gap **is** the interaction |
+| sparse enhancer masks | sparse epistatic hotspots |
+
+**E5 — where it works, and where it does not.** Test RMSE normalised by
+landscape standard deviation, 3 seeds, L=8:
+
+| n_train | | additive | chroma | mlp |
+|---|---|---|---|---|
+| 40 | sparse hotspots | 2.096 | **0.142** | 1.134 |
+| 200 | sparse hotspots | 2.320 | **0.045** | 0.055 |
+| 40 | dense NK | 1.546 | 1.546 | **0.939** |
+| 200 | dense NK | 1.493 | 1.493 | **0.033** |
+
+Eight-fold better than the unconstrained network at 40 training genotypes when
+interaction is sparse — and *strictly worse* when it is dense, where the L0 gate
+shuts the residual off entirely and the model collapses to the additive
+baseline. That boundary is the useful finding, not a bug to tune away.
+
+```bash
+python experiments/e5_hypercube.py hotspot
+python experiments/e5_hypercube.py nk
+PYTHONPATH=. python tests/test_hypercube.py
+```
+
+**Two corrections the code forced.** First, `ε_ij = 4·β_ij` is false whenever
+third-order or higher terms exist — every subset containing both sites
+contributes, which is the background dependence of measured epistasis.
+`cycle_epistasis_expected` pins the exact accounting. Second, a single-mutant
+assay does not measure `β_k`; it measures `β_k` plus every interaction
+involving site k. Left uncorrected, the "exact" additive part is worse than no
+model at all (test RMSE 6.91 vs a landscape σ of 3.0). The learned coefficients
+are exactly the contaminating terms, so the correction is closed-form and costs
+no parameters — with it, RMSE drops to 0.08.
+
+---
+
 ## Spec-to-code map
 
 | Spec | File | Key object |

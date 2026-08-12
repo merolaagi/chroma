@@ -15,12 +15,19 @@ MSG="${1:-iterate}"
 
 say() { printf '\033[1m==> %s\033[0m\n' "$1"; }
 
+# Pick an interpreter: bare `python` does not exist on stock macOS, but it does
+# exist inside an activated venv. Prefer whatever is on PATH, fall back to
+# python3, so the script works with or without the venv active.
+PY=python
+command -v python >/dev/null 2>&1 || PY=python3
+
 if [ "$GATE" = 1 ]; then
-  say "proposition tests"
-  if ! PYTHONPATH=. python tests/test_propositions.py | tee /tmp/chroma_tests.txt; then
+  say "proposition tests (SE(2) + hypercube)"
+  if ! { PYTHONPATH=. $PY tests/test_propositions.py; \
+         PYTHONPATH=. $PY tests/test_hypercube.py; } | tee /tmp/chroma_tests.txt; then
     echo "test run errored - not shipping"; exit 1
   fi
-  grep -q "ALL PASS" /tmp/chroma_tests.txt || {
+  [ "$(grep -c 'ALL PASS' /tmp/chroma_tests.txt)" = 2 ] || {
     echo
     echo "A proposition test FAILED. That means a claim in the README or the"
     echo "explainer PDF is now false. Fix the claim or the code before shipping."
@@ -28,11 +35,11 @@ if [ "$GATE" = 1 ]; then
 fi
 
 say "aggregate experiment results"
-python aggregate.py | tee results/SUMMARY.txt || true
+$PY aggregate.py | tee results/SUMMARY.txt || true
 
 say "regenerate figures and explainer PDF"
-python docs/make_figures.py
-python docs/build_pdf.py
+$PY docs/make_figures.py
+$PY docs/build_pdf.py
 
 if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
   say "nothing changed"; exit 0

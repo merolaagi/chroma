@@ -1,0 +1,28 @@
+{
+  "40": {
+    "additive": 2.0959,
+    "chroma": 0.1422,
+    "mlp": 1.1339
+  },
+  "70": {
+    "additive": 2.1197,
+    "chroma": 0.1733,
+    "mlp": 0.6704
+  },
+  "100": {
+    "additive": 2.1385,
+    "chroma": 0.0769,
+    "mlp": 0.4746
+  },
+  "140": {
+    "additive": 2.2213,
+    "chroma": 0.0348,
+    "mlp": 0.2958
+  },
+  "200": {
+    "additive": 2.3201,
+    "chroma": 0.0451,
+    "mlp": 0.0549
+  },
+  "verdict": "group buys sample efficiency"
+}

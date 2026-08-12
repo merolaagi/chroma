@@ -1,0 +1,28 @@
+{
+  "40": {
+    "additive": 1.5459,
+    "chroma": 1.5459,
+    "mlp": 0.9389
+  },
+  "70": {
+    "additive": 1.5395,
+    "chroma": 1.5132,
+    "mlp": 0.4508
+  },
+  "100": {
+    "additive": 1.5209,
+    "chroma": 1.3263,
+    "mlp": 0.223
+  },
+  "140": {
+    "additive": 1.5456,
+    "chroma": 1.5456,
+    "mlp": 0.0955
+  },
+  "200": {
+    "additive": 1.4934,
+    "chroma": 1.4934,
+    "mlp": 0.0325
+  },
+  "verdict": "NOT SUPPORTED - the residual did not earn its place"
+}

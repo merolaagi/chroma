@@ -10,4 +10,5 @@ jobs:
           python-version: "3.11"
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
       - run: PYTHONPATH=. python tests/test_propositions.py | tee out.txt
-      - run: grep -q "ALL PASS" out.txt
+      - run: PYTHONPATH=. python tests/test_hypercube.py | tee -a out.txt
+      - run: test "$(grep -c "ALL PASS" out.txt)" = 2

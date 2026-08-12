@@ -1,4 +1,6 @@
-.PHONY: test docs results ship dry clean
+PY := $(shell command -v python 2>/dev/null || echo python3)
+
+.PHONY: test docs results ship dry clean e5
 
 test:            ## run the proposition suite
 	PYTHONPATH=. python tests/test_propositions.py
@@ -6,6 +8,10 @@ test:            ## run the proposition suite
 docs:            ## regenerate figures from results/ and rebuild the PDF
 	python docs/make_figures.py
 	python docs/build_pdf.py
+
+e5:              ## hypercube sample-efficiency comparison
+	$(PY) experiments/e5_hypercube.py hotspot
+	$(PY) experiments/e5_hypercube.py nk
 
 results:         ## full E1 sweep: 5 seeds x 3 arms (overnight)
 	@for s in 0 1 2 3 4; do \
