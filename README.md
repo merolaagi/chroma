@@ -268,6 +268,42 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### Second retraction: it was representational collapse (2026-08-13)
+
+The full 15-run sweep (5 seeds x 3 arms, 20k steps, 12.5 hours) completed with
+the `DEGENERATE` warning firing in almost every run. The graded-world fix did
+not work, because the diagnosis was wrong.
+
+Measured after 500 steps: **62 of 64 latent dimensions had standard deviation
+below 0.05**. Raising the covariance weight from 0.04 to 1.0 changed nothing.
+
+The cause is a design error in `losses.py`. It dropped VICReg's *variance* term,
+arguing Proposition 4 closes off collapse structurally. Proposition 4 bounds
+`||s_hat||` relative to `||s||` -- but `PatchEncoder` already renormalises to
+fixed norm, so norm collapse was never reachable. What remains reachable is
+*dimensional* collapse: every sample mapping to nearly the same point on the
+sphere. Norm preserved, per-dimension variance gone, Proposition 4 silent.
+
+With the variance hinge restored (`lam_var=1.0`), dimensions below 0.05 go from
+62 to 0 and minimum per-dimension std from 0.008 to 0.34.
+
+Sweep results, recorded but **not valid** — all three arms were being driven by
+a signal that had collapsed to noise:
+
+| arm | switch rate | mean err | basins |
+|---|---|---|---|
+| CHROMA | 0.00007 +/- 0.00001 | 0.0122 | 6 |
+| flat landscape | 0.00014 +/- 0.00003 | 0.0095 | 1 |
+| MLP | 0.00027 +/- 0.00018 | 0.0037 | 1 |
+
+Unresolved: with the variance term on, effective rank *fell* to 5.4 while
+per-dimension variance rose. Those should move together. Either the metric is
+misleading under a norm constraint or something else is wrong, and it needs
+explaining before the next sweep is trusted.
+
+**Run `make smoke` before `make results`.** Two thousand steps, five minutes,
+and it fails loudly rather than after twelve hours.
+
 ### A confound found mid-sweep (2026-08-12)
 
 The first full-scale E1 run drove prediction error to ~1e-4 by step 10,000, with

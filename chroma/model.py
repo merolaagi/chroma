@@ -70,6 +70,7 @@ class ChromaConfig:
     beta_vote: float = 0.3
     gamma_reg: float = 0.01
     lam_cov: float = 0.04
+    lam_var: float = 1.0     # VICReg variance hinge; see the retraction in losses.py
     # ablation switches (experiment E1 / E4)
     ablate_grn_dynamics: bool = False     # E1 arm 2: no recurrence, no basins
     ablate_hysteresis: bool = False       # E1 arm 3: recurrence kept, basins off
@@ -172,7 +173,8 @@ class CHROMA(nn.Module):
         s_hat = self.predict(s, d, z, e)
         with torch.no_grad():
             s_tgt = self.target(x_next)
-        loss, per = prediction_loss(s_hat, s_tgt, z, lam_cov=self.cfg.lam_cov)
+        loss, per = prediction_loss(s_hat, s_tgt, z, lam_cov=self.cfg.lam_cov,
+                                    lam_var=self.cfg.lam_var)
         return loss, per, s
 
     def loop_term(self, x_t: Tensor, path: list[GroupAction],

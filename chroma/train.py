@@ -203,6 +203,10 @@ class Trainer:
                                 disagree=out["disagree"],
                                 switch_rate=self.switch_events / max(self.t, 1),
                                 regime=self.world.regime)
+                    if snap.get("alarm_representational"):
+                        print(f"  !! representational collapse: effective rank "
+                              f"{snap['effective_rank']:.1f} < {0.3 * 64:.0f}. "
+                              "Check lam_var, not the world.")
                     if snap["err"] < tc.err_floor:
                         snap["DEGENERATE"] = True
                         print("  !! prediction error below the floor "

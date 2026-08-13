@@ -8,9 +8,25 @@ trivially generatable by an embodied agent, the target is the agent's own
 current state, and because rho is unitary there is no shrink-to-zero shortcut --
 so it needs no target encoder and carries no collapse risk.
 
-Note the deliberate omission: the *variance* term of VICReg is dropped.
-Proposition 4 closes off norm collapse structurally (the residual is norm-bounded
-and rho is unitary), so only the covariance term is needed.
+RETRACTED, 2026-08-13.  An earlier version of this file dropped the *variance*
+term of VICReg, arguing that Proposition 4 closes off collapse structurally.
+That argument is wrong, and it cost a 12.5 hour sweep.
+
+Proposition 4 bounds ||s_hat|| relative to ||s||, i.e. it prevents the *norm*
+going to zero.  But PatchEncoder already renormalises s to fixed norm sqrt(D),
+so norm collapse was never reachable in the first place.  What remains reachable
+is *dimensional* collapse: every sample mapping to nearly the same point on the
+sphere.  Norm is preserved, per-dimension variance vanishes, and Proposition 4
+says nothing about it.
+
+Measured after 500 steps with the variance term absent: 62 of 64 latent
+dimensions had standard deviation below 0.05.  Raising the covariance weight
+from 0.04 to 1.0 changed nothing, because the covariance term penalises
+off-diagonal structure, not per-dimension variance -- only the variance term
+does that.  Prediction error then falls to ~1e-5 because there is nothing left
+to distinguish, vote disagreement follows it to zero, the regulatory input u
+goes to zero, and all three E1 arms tie because none of them is being driven by
+anything.
 """
 
 from __future__ import annotations
@@ -22,7 +38,7 @@ from torch import Tensor
 from .groups import GroupAction, SE2Rep
 
 __all__ = [
-    "covariance_loss", "prediction_loss", "loop_loss", "vote_distillation_loss",
+    "covariance_loss", "variance_loss", "prediction_loss", "loop_loss", "vote_distillation_loss",
     "effective_rank", "CollapseMonitor",
 ]
 
@@ -38,13 +54,30 @@ def covariance_loss(s: Tensor) -> Tensor:
     return (off ** 2).sum() / D
 
 
+def variance_loss(s: Tensor, gamma: float = 1.0, eps: float = 1e-4) -> Tensor:
+    """VICReg hinge on per-dimension standard deviation.
+
+    The encoder normalises to ||s|| = sqrt(D), so a zero-mean, isotropic
+    representation has per-dimension variance exactly 1.  gamma = 1 is therefore
+    the natural target rather than a tuned constant.
+    """
+    if s.shape[0] < 2:
+        return torch.zeros((), device=s.device)
+    std = torch.sqrt(s.var(0) + eps)
+    return F.relu(gamma - std).mean()
+
+
 def prediction_loss(s_hat: Tensor, s_target: Tensor, z: Tensor,
-                    lam_cov: float = 0.04, lam_z: float = 1e-3
+                    lam_cov: float = 0.04, lam_z: float = 1e-3,
+                    lam_var: float = 1.0
                     ) -> tuple[Tensor, Tensor]:
     """Returns (total, per-sample energy).  ``s_target`` must already be
     stop-gradiented from the EMA encoder."""
     per = ((s_hat - s_target) ** 2).mean(-1)
-    total = per.mean() + lam_cov * covariance_loss(s_hat) + lam_z * (z ** 2).mean()
+    total = (per.mean()
+             + lam_var * variance_loss(s_hat)
+             + lam_cov * covariance_loss(s_hat)
+             + lam_z * (z ** 2).mean())
     return total, per.detach()
 
 

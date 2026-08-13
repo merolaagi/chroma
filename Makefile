@@ -1,6 +1,6 @@
 PY := $(shell command -v python 2>/dev/null || echo python3)
 
-.PHONY: test docs results ship dry clean e5
+.PHONY: test docs results ship dry clean e5 smoke
 
 test:            ## run the proposition suite
 	PYTHONPATH=. python tests/test_propositions.py
@@ -8,6 +8,12 @@ test:            ## run the proposition suite
 docs:            ## regenerate figures from results/ and rebuild the PDF
 	python docs/make_figures.py
 	python docs/build_pdf.py
+
+smoke:           ## 2000-step validation BEFORE committing to `make results`
+	$(PY) run_e1_chunk.py chroma 2000 0
+	@echo
+	@echo "Check above: no '!!' lines, err settling near 0.01-0.1, dis > 0.01."
+	@echo "If either alarm fired, do NOT run 'make results' -- fix first."
 
 e5:              ## hypercube sample-efficiency comparison
 	$(PY) experiments/e5_hypercube.py hotspot
