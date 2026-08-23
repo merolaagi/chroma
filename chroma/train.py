@@ -40,6 +40,7 @@ class TrainConfig:
     deep_log_every: int = 2500
     grad_clip: float = 1.0
     err_floor: float = 1e-3     # below this the error signal is uninformative
+    alarm_warmup: int = 100     # no alarms before the encoder has trained
 
 
 class Trainer:
@@ -204,16 +205,21 @@ class Trainer:
                                 disagree=out["disagree"],
                                 switch_rate=self.switch_events / max(self.t, 1),
                                 regime=self.world.regime)
-                    if snap.get("alarm_dim_collapse"):
+                    # Alarms are meaningless before the encoder has trained at
+                    # all: at random init the latent is arbitrary and step 0
+                    # will always look collapsed. Grace period, not suppression
+                    # -- after warmup every alarm still fires.
+                    warm = self.t >= tc.alarm_warmup
+                    if warm and snap.get("alarm_dim_collapse"):
                         print(f"  !! dimensional collapse: min per-dim std "
                               f"{snap['min_dim_std']:.4f} < 0.05. Raise lam_var.")
-                    if snap.get("alarm_representational"):
+                    if warm and snap.get("alarm_representational"):
                         print(f"  !! representational collapse: latent rank "
                               f"{snap['effective_rank']:.1f} vs input rank "
                               f"{snap.get('input_rank', '?')} "
                               f"(ratio {snap.get('rank_ratio', '?')}). "
                               "Check lam_var, not the world.")
-                    if snap["err"] < tc.err_floor:
+                    if warm and snap["err"] < tc.err_floor:
                         snap["DEGENERATE"] = True
                         print("  !! prediction error below the floor "
                               f"({snap['err']:.2e} < {tc.err_floor:.0e}). Every "
