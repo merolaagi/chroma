@@ -204,6 +204,9 @@ class Trainer:
                                 disagree=out["disagree"],
                                 switch_rate=self.switch_events / max(self.t, 1),
                                 regime=self.world.regime)
+                    if snap.get("alarm_dim_collapse"):
+                        print(f"  !! dimensional collapse: min per-dim std "
+                              f"{snap['min_dim_std']:.4f} < 0.05. Raise lam_var.")
                     if snap.get("alarm_representational"):
                         print(f"  !! representational collapse: latent rank "
                               f"{snap['effective_rank']:.1f} vs input rank "
@@ -223,7 +226,7 @@ class Trainer:
                     self.log.append(snap)
                     print(f"[{self.t:6d}] {phase:14s} loss={out['loss']:.4f} "
                           f"err={out['err']:.4f} dis={out['disagree']:.4f} "
-                          f"D={snap['mean_D']:.3f} er={snap['effective_rank']:.1f} "
+                          f"D={snap['mean_D']:.3f} sd={snap.get('min_dim_std', 0):.3f} "
                           f"sw={snap['switch_rate']:.4f} mem={snap['memory_size']}")
                 self.t += 1
         return self.log

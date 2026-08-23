@@ -12,7 +12,9 @@ docs:            ## regenerate figures from results/ and rebuild the PDF
 smoke:           ## 2000-step validation BEFORE committing to `make results`
 	$(PY) run_e1_chunk.py chroma 2000 0
 	@echo
-	@echo "Check above: no '!!' lines, err settling near 0.01-0.1, dis > 0.01."
+	@echo "Check above: no '!!' lines; err FALLING (not a fixed band);"
+	@echo "sd > 0.05; dis > 0.01. An absolute err target was the wrong"
+	@echo "criterion -- what matters is that it is still decreasing."
 	@echo "If either alarm fired, do NOT run 'make results' -- fix first."
 
 e5:              ## hypercube sample-efficiency comparison

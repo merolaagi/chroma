@@ -70,7 +70,15 @@ class ChromaConfig:
     beta_vote: float = 0.3
     gamma_reg: float = 0.01
     lam_cov: float = 0.04
-    lam_var: float = 1.0     # VICReg variance hinge; see the retraction in losses.py
+    lam_var: float = 0.50    # VICReg variance hinge. Tuned under the FULL phase
+                             # schedule, not just the pluripotent phase -- the
+                             # first tuning pass measured only phase 0 and chose
+                             # a value that collapsed once memory and voting
+                             # switched on. min per-dim std / error trend:
+                             #   0.00 -> 0.005 / 0.28   collapsed
+                             #   0.20 -> 0.043 / 0.33   marginal, alarm fires
+                             #   0.50 -> 0.130 / 0.42   clears with margin
+                             #   1.00 -> 0.353 / 0.71   learning stalled
     # ablation switches (experiment E1 / E4)
     ablate_grn_dynamics: bool = False     # E1 arm 2: no recurrence, no basins
     ablate_hysteresis: bool = False       # E1 arm 3: recurrence kept, basins off
@@ -241,6 +249,9 @@ class CHROMA(nn.Module):
         out = self.monitor.check(s, basin, mi)
         out["phase"] = self.phase
         out["mean_D"] = float(self.diff.D.mean())
+        if s.shape[0] > 1:
+            out["min_dim_std"] = round(float(s.std(0).min()), 4)
+            out["alarm_dim_collapse"] = out["min_dim_std"] < 0.05
         out["memory_size"] = self.memory.size()
         e = self.expression()
         if e is not None:
