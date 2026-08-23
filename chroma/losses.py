@@ -129,20 +129,47 @@ class CollapseMonitor:
 
     Only one of these three shows up in task loss.  Watching task loss alone
     ships a model that looks fine and has silently degenerated.
+
+    RETRACTION 2: the representational alarm was miscalibrated as
+    ``effective_rank < 0.3 * D``.  That threshold is unreachable in principle.
+    A 3x3 tactile patch is 9-dimensional with measured effective rank ~4.6, so
+    no encoder can produce more than 9 independent latent directions no matter
+    how healthy it is.  0.3 * 64 = 19.2 could never be satisfied and the alarm
+    fired on every step of every run.
+
+    The meaningful question is not how much of D the latent fills, but whether
+    the latent preserves the *input* manifold.  The alarm now compares against
+    a running estimate of the input's own effective rank.  Measured healthy
+    ratio: latent 5.16 against input 4.64, i.e. 1.11 -- the representation is
+    keeping everything the input had.
     """
 
     def __init__(self, D: int, rank_frac: float = 0.30,
-                 min_basin_entropy: float = 0.6931, mi_window: int = 5000):
+                 min_basin_entropy: float = 0.6931, mi_window: int = 5000,
+                 input_rank_frac: float = 0.80):
         self.D, self.rank_frac = D, rank_frac
+        self.input_rank_frac = input_rank_frac
+        self.input_rank: float | None = None
         self.min_H, self.mi_window = min_basin_entropy, mi_window
         self.mi_hist: list[float] = []
+
+    def observe_input(self, x: Tensor) -> None:
+        """Track the input manifold's own effective rank as the reference."""
+        r = float(effective_rank(x))
+        self.input_rank = r if self.input_rank is None else (
+            0.98 * self.input_rank + 0.02 * r)
 
     def check(self, s: Tensor, basin_entropy: float | None,
               vote_mi: float | None) -> dict:
         out = {}
         er = float(effective_rank(s))
         out["effective_rank"] = er
-        out["alarm_representational"] = er < self.rank_frac * self.D
+        if self.input_rank is not None:
+            out["input_rank"] = round(self.input_rank, 2)
+            out["rank_ratio"] = round(er / max(self.input_rank, 1e-6), 2)
+            out["alarm_representational"] = er < self.input_rank_frac * self.input_rank
+        else:
+            out["alarm_representational"] = er < self.rank_frac * self.D
         if basin_entropy is not None:
             out["basin_entropy"] = basin_entropy
             out["alarm_attractor"] = basin_entropy < self.min_H

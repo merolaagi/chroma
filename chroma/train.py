@@ -104,6 +104,7 @@ class Trainer:
             n += 1
             s_last = s
             self._sbuf.append(s.detach())
+            m.monitor.observe_input(x_t.detach())
             self._sbuf = self._sbuf[-64:]
 
             if m.flags["memory"]:
@@ -204,8 +205,10 @@ class Trainer:
                                 switch_rate=self.switch_events / max(self.t, 1),
                                 regime=self.world.regime)
                     if snap.get("alarm_representational"):
-                        print(f"  !! representational collapse: effective rank "
-                              f"{snap['effective_rank']:.1f} < {0.3 * 64:.0f}. "
+                        print(f"  !! representational collapse: latent rank "
+                              f"{snap['effective_rank']:.1f} vs input rank "
+                              f"{snap.get('input_rank', '?')} "
+                              f"(ratio {snap.get('rank_ratio', '?')}). "
                               "Check lam_var, not the world.")
                     if snap["err"] < tc.err_floor:
                         snap["DEGENERATE"] = True

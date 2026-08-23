@@ -296,10 +296,20 @@ a signal that had collapsed to noise:
 | flat landscape | 0.00014 +/- 0.00003 | 0.0095 | 1 |
 | MLP | 0.00027 +/- 0.00018 | 0.0037 | 1 |
 
-Unresolved: with the variance term on, effective rank *fell* to 5.4 while
-per-dimension variance rose. Those should move together. Either the metric is
-misleading under a norm constraint or something else is wrong, and it needs
-explaining before the next sweep is trusted.
+**Resolved (same day).** The metric was misleading. The alarm compared
+`effective_rank` against `0.3 * D = 19.2`, a threshold unreachable in principle:
+a 3x3 tactile patch is 9-dimensional with measured effective rank 4.64, so no
+encoder can produce more than 9 independent latent directions however healthy it
+is. The alarm fired on every step of every run and meant nothing.
+
+The meaningful question is whether the latent preserves the *input* manifold, so
+`CollapseMonitor` now tracks the input's own effective rank as the reference.
+Measured after the variance fix: **latent 5.16 against input 4.64, ratio 1.11** —
+the representation keeps everything the input had.
+
+With `lam_var=1.0`, a 2000-step smoke run gives err 0.28-0.43 and disagreement
+0.40, against 1e-5 and 0.0 before. Those are the two preconditions E1 needs, and
+they are now met.
 
 **Run `make smoke` before `make results`.** Two thousand steps, five minutes,
 and it fails loudly rather than after twelve hours.
