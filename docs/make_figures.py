@@ -181,14 +181,20 @@ def fig_e1_bars():
               f'fill="{c["fill"]}" stroke="{c["stroke"]}" stroke-width="0.8"/>')
         s += label(x0 - 12, y + 22, name, 11, "end", "#2C2C2A")
         s += label(x0 + w + 10, y + 22, f"{v:.5f}", 11, "start", c["stroke"])
-    tie = abs(vals[0][1] - vals[1][1]) < 0.25 * max(vals[0][1], 1e-9)
+    # Use the SAME threshold as the pre-registration (5x), not a separate
+    # 25% rule. With chroma 1.0e-4 and flat 1.4e-4 the 25% rule would have
+    # printed "the distinct modes are doing work" for a 1.44x effect that the
+    # pre-registered criterion calls unsupported. The figure must not be able
+    # to overclaim relative to the stated bar.
+    ratio = vals[1][1] / max(vals[0][1], 1e-12)
+    tie = ratio < 5.0
     s += label(340, 285,
                "Instability of module identity (lower is better)."
                + (f" {n_seeds} seeds." if n_seeds else ""), 12.5, "middle")
     s += label(340, 303,
-               "Rows 1 and 2 are indistinguishable - the distinct modes add nothing."
+               f"Rows 1 and 2 differ by {ratio:.2f}x, under the 5x bar set in advance."
                if tie else
-               "Rows 1 and 2 differ - the distinct modes are doing work.",
+               f"Rows 1 and 2 differ by {ratio:.2f}x, clearing the 5x bar set in advance.",
                12.5, "middle")
     return s + "</svg>"
 

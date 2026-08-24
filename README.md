@@ -268,6 +268,47 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### E1, first valid run (2026-08-23)
+
+Five seeds, three arms, 20k steps, on a build with no standing alarms.
+Switch rate is instability of module identity; lower is better.
+
+| arm | n | switch rate | mean err | basins |
+|---|---|---|---|---|
+| CHROMA (recurrence + basins) | 5 | 0.00010 +/- 0.00003 | 0.278 +/- 0.160 | 6 |
+| flat landscape (recurrence only) | 5 | 0.00014 +/- 0.00004 | 0.214 +/- 0.125 | 1 |
+| MLP (neither) | 5 | 0.00202 +/- 0.00052 | 0.175 +/- 0.029 | 1 |
+
+**Slow integration: strongly supported.** Removing the slow dial entirely costs
+**20.95x** on switch rate, against a bar of 5x set before the run. The
+timescale separation is doing real work.
+
+**Multistability: not supported.** The flat-landscape arm — recurrence and
+`tau_g` intact, the Krotov-Hopfield basins flattened — differs by only
+**1.44x**, well under the 5x bar. Paired by seed the direction is consistent
+(4 of 4 non-tied seeds favour CHROMA) but a sign test gives p = 0.125, and the
+effect is small either way.
+
+So Section 4.1 splits. The claim that survives is "a slow timescale stabilises
+regime identity." The claim that does not is "attractor multistability is what
+provides that stability." The Hopfield energy can be flattened with almost no
+cost, and the honest version of the architecture keeps `RegulatoryState` only
+for its recurrence.
+
+**A finding that cuts against the architecture:** CHROMA has the *worst* mean
+prediction error (0.278) and by far the highest seed-to-seed variance (+/-0.160
+against the MLP's +/-0.029). Two of five seeds came in near 0.44 while the rest
+sat near 0.15. Being the most stable arm while predicting worst suggests the
+stability is partly bought by under-adapting, and that trade is not one the
+design ever argued for.
+
+**Caveats on this run.** Memory hit its 20,000 cap in every arm, usually by step
+10,000-12,500, so roughly half of each run had a frozen object memory. Two
+transient dimensional-collapse warnings fired (chroma seed 2, MLP seed 2) and
+both recovered by the next log window. Neither invalidates the comparison — all
+three arms hit the cap equally — but capacity is now the obvious next thing to
+fix.
+
 ### Second retraction: it was representational collapse (2026-08-13)
 
 The full 15-run sweep (5 seeds x 3 arms, 20k steps, 12.5 hours) completed with
