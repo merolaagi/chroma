@@ -294,6 +294,34 @@ Pilot, 400 training steps, 6 episodes, 1 seed:
 | greedy EIG | 10.67 | 0.00 | 320 |
 | MCTS | 11.17 | 0.50 | 500 |
 
+**Run at 1500 steps / 2 seeds / 12 episodes: NOT SUPPORTED.**
+
+| policy | steps | accuracy | sec/ep |
+|---|---|---|---|
+| random | 13.21 | 0.21 | 0.152 |
+| greedy EIG | 13.21 | **0.33** | 0.307 |
+| MCTS | 13.92 | 0.17 | 1.023 |
+
+Search buys nothing: MCTS is worse than random on both metrics while costing
+6.7x more. Two things are wrong with the experiment, though, and both were
+found by reading these numbers.
+
+*The metric was saturated.* All three finished at 13.2-13.9 steps against a cap
+of 20, meaning the 0.60 confidence target was almost never reached. The
+comparison was between three policies that all failed. Cap and target adjusted.
+
+*The tree simulator had a real bug.* `MCTSPolicy._apply` summed evidence across
+modules and broadcast the sum back to every module, multiplying total evidence
+by M each application -- M^3 = 512x over a depth-3 rollout. The tree was scoring
+hallucinated certainty. This is exactly why MCTS scored *below* its own greedy
+prior: a search cannot beat its prior unless the simulator is sane. Fixed.
+
+*The deeper read.* Random accuracy is 0.21 against a 1/12 = 0.083 chance
+baseline. Recognition itself barely works, so no action policy can rescue it.
+**The bottleneck is evidence quality, not action selection** -- which means E6
+was testing the wrong thing, and object memory hitting its capacity cap in every
+run is the more likely culprit.
+
 **This does not support anything yet.** Steps-to-recognition is flat across all
 three because the 0.60 confidence target is rarely reached inside the step cap,
 so the headline metric is not discriminating. Accuracy differs (3/6 vs 1/6 vs

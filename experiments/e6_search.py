@@ -40,8 +40,13 @@ def build(steps=1500, seed=0):
 
 
 @torch.no_grad()
-def episode(m, w, policy, max_steps=20, conf_target=0.60):
-    """Steps until the pooled posterior puts conf_target on one object."""
+def episode(m, w, policy, max_steps=40, conf_target=0.40):
+    """NOTE on the metric. At max_steps=20 / conf_target=0.60 all three policies
+    finished at 13.2-13.9 steps, i.e. saturated against the cap: the target was
+    almost never reached, so the comparison was between three policies that all
+    failed and steps-to-recognition measured nothing. Raised the cap and lowered
+    the target so the metric has room to discriminate."""
+
     obj = w.sample_object()
     m.bus.reset()
     pose = GroupAction(torch.randint(-3, 4, (1, 2)).float(),

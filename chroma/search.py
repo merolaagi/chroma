@@ -197,11 +197,16 @@ class MCTSPolicy(InfoGainPolicy):
         S = F.normalize(S, dim=-1) * ok.unsqueeze(-1).float()
         star = int(prob.argmax())
         lam = (S @ S[star]) / self.tau                   # (K,)
+        # BUG FIXED 2026-08-26. The original summed L across modules and then
+        # broadcast the sum back to every module, multiplying total evidence by
+        # M on each application. Over a depth-3 rollout that inflated evidence
+        # by M^3 = 512x, so the tree was scoring hallucinated certainty. It is
+        # why MCTS scored *below* its own greedy prior in E6 -- a search cannot
+        # beat its prior unless the simulator is sane.
         out = L.clone()
-        flat = out.sum(0).reshape(-1)
-        flat = flat.clone()
-        flat[idx] = flat[idx] + lam
-        return flat.reshape(1, *out.shape[1:]).expand_as(out).contiguous()
+        flat = out.reshape(out.shape[0], -1)
+        flat[:, idx] = flat[:, idx] + lam.unsqueeze(0) / out.shape[0]
+        return flat.reshape_as(out)
 
     def select(self, L: Tensor, sensor: GroupAction, **__) -> GroupAction:
         n = self.actions.n
