@@ -1,6 +1,6 @@
 PY := $(shell command -v python 2>/dev/null || echo python3)
 
-.PHONY: test docs results ship dry clean e5 smoke
+.PHONY: test docs results ship dry clean e5 e6 smoke
 
 test:            ## run the proposition suite
 	PYTHONPATH=. python tests/test_propositions.py
@@ -16,6 +16,9 @@ smoke:           ## 2000-step validation BEFORE committing to `make results`
 	@echo "sd > 0.05; dis > 0.01. An absolute err target was the wrong"
 	@echo "criterion -- what matters is that it is still decreasing."
 	@echo "If either alarm fired, do NOT run 'make results' -- fix first."
+
+e6:              ## active-sensing policy comparison (random/greedy/MCTS)
+	$(PY) experiments/e6_search.py
 
 e5:              ## hypercube sample-efficiency comparison
 	$(PY) experiments/e5_hypercube.py hotspot

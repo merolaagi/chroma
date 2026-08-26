@@ -26,6 +26,7 @@ from .voting import HypothesisGrid, VotingBus
 from .model import CHROMA, ChromaConfig, PHASES
 from .train import Trainer, TrainConfig
 from .world import TactileWorld
+from .search import (ActionSet, InfoGainPolicy, MCTSPolicy, RandomPolicy)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "EquivariantResidual", "CanonicalMemory", "RegulatoryState",
     "MLPRegulator", "FlatRegulator", "EnhancerReadout", "Differentiation", "HypothesisGrid",
     "VotingBus", "CHROMA", "ChromaConfig", "PHASES", "Trainer", "TrainConfig",
-    "TactileWorld",
+    "TactileWorld", "ActionSet", "InfoGainPolicy", "MCTSPolicy",
+    "RandomPolicy",
 ]

@@ -268,6 +268,49 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### E6: active sensing (`chroma/search.py`) — implemented, NOT validated
+
+`world.sample_action()` picked displacements at random, which silently limited
+every experiment: Monty's premise is that *where you move* determines how fast
+you recognise something, and CHROMA was moving blind.
+
+What transfers from AlphaGo is the search, not the rest. Self-play needs an
+adversary; value networks need terminal returns; policy distillation needs
+expert trajectories. None exist here. PUCT tree search does transfer, with the
+value replaced by **expected information gain** — pick the displacement whose
+predicted observation most separates the surviving hypotheses.
+
+Two things make it cheap. A movement is a *permutation of the hypothesis grid*
+(`pushforward_index`), so simulating an action is an index permutation plus a
+memory lookup, not a forward pass. And because `rho(d)` is exact transport with
+zero drift, the tree can be expanded to real depth without the simulator
+degrading — which a learned world model cannot offer.
+
+Pilot, 400 training steps, 6 episodes, 1 seed:
+
+| policy | steps | accuracy | ms/decision |
+|---|---|---|---|
+| random | 10.17 | 0.17 | 261 |
+| greedy EIG | 10.67 | 0.00 | 320 |
+| MCTS | 11.17 | 0.50 | 500 |
+
+**This does not support anything yet.** Steps-to-recognition is flat across all
+three because the 0.60 confidence target is rarely reached inside the step cap,
+so the headline metric is not discriminating. Accuracy differs (3/6 vs 1/6 vs
+0/6) but n = 6.
+
+The finding worth chasing: **greedy EIG scored worse than random.** That should
+not happen if the information-gain calculation is sound. Either the predicted
+latents are meaningless when memory is this sparse (~2,500 nodes), or greedy is
+maximising discrimination among hypotheses that are all wrong. That needs
+diagnosing before E6 is run at scale — a broken value function would make the
+MCTS numbers meaningless too.
+
+Also fixed during implementation: the rollout policy originally called full
+greedy select inside every simulation, costing 49 ms per step and ~1.8 s per
+MCTS decision. It now samples from the prior, as AlphaGo's fast rollout policy
+did.
+
 ### E1, first valid run (2026-08-23)
 
 Five seeds, three arms, 20k steps, on a build with no standing alarms.
