@@ -4,6 +4,9 @@ from collections import defaultdict
 
 rows = defaultdict(list)
 for f in sorted(glob.glob('results/e1_*.json')):
+    if f.endswith('_smoke.json'):
+        continue   # 2k-step smoke runs are not sweep results
+
     d = json.load(open(f))
     rows[d['arm']].append(d)
 

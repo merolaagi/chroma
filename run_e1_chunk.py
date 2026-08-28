@@ -36,5 +36,5 @@ res = dict(arm=arm, seed=seed, steps=steps,
 if hasattr(model.regulator, 'enumerate_attractors'):
     c, _ = model.regulator.enumerate_attractors(n_init=512, steps=250, tol=0.35)
     res['n_basins'] = int(c.shape[0])
-json.dump(res, open(f'results/e1_{arm}_s{seed}.json', 'w'), indent=2, default=str)
+json.dump(res, open(f'results/e1_{arm}_s{seed}{"_smoke" if steps < 10000 else ""}.json', 'w'), indent=2, default=str)
 print("SAVED", arm, {k: v for k, v in res.items() if k != 'log'})
