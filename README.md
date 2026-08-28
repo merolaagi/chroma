@@ -268,6 +268,37 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### Verdict on the search layer: cut it (2026-08-26)
+
+Three measurements of the same value function, at increasing levels of
+correctness:
+
+| build | within-state Spearman | advantage over random |
+|---|---|---|
+| original | +0.050 | +0.065 |
+| after the evidence-normalisation fix | **-0.280** | -0.0005 |
+| after making the forward model consistent | -0.028 | -0.0001 |
+
+The middle row was self-inflicted: `accumulate_batch` was changed to normalise
+evidence by valid-lookup count, and `InfoGainPolicy` was not changed with it, so
+the search was simulating dynamics the environment no longer had. A search whose
+simulator disagrees with the environment is worse than no search — hence the
+systematic *negative* correlation, which is not noise.
+
+Fixing the inconsistency removed the harm. It did not create any benefit.
+Within-state Spearman is ~0 in every correct build: **expected information gain,
+as computed here, does not predict which action will actually reduce
+uncertainty.** Candidate causes are the determinised observation model, memory
+too sparse for predicted latents to mean anything, and top-K pruning discarding
+the hypotheses that would discriminate.
+
+The recommendation is to cut `chroma/search.py` rather than debug it further.
+It has now consumed two retractions and produced no positive result, and the
+thing it needs — a recognition system whose posterior means something — is the
+open problem underneath it. If recognition ever reaches usable accuracy, the
+search layer is worth reviving; until then it is a solution waiting for its
+premise.
+
 ### E8: recognition was the bottleneck, and it was a bug (2026-08-26)
 
 Recognition accuracy sat at 0.21 against a 1/12 = 0.083 chance baseline, which
@@ -290,12 +321,21 @@ hypotheses compete on fit rather than coverage:
 | | accuracy | x chance | confidence |
 |---|---|---|---|
 | sum (as shipped) | 0.240 | 2.88x | 0.797 |
-| **normalised** | **0.440** | **5.28x** | 0.224 |
-| normalised, tau=0.5 | 0.160 | 1.92x | 0.113 |
+| normalised (25 episodes, 1 seed) | 0.440 | 5.28x | 0.224 |
+| **normalised (80 episodes, 2 seeds)** | **0.287** | **3.45x** | 0.233 |
 
-Nearly double the accuracy and calibration goes from wildly overconfident to
-mildly underconfident. Still short of usable (0.44 is not 0.9), but the
-foundation is no longer actively broken.
+The 0.440 figure was a single noisy measurement over 25 episodes and should not
+have been reported as the result. At 80 episodes across 2 seeds the honest
+number is **0.287**. The fix is real but modest: 0.21 -> 0.287, not a doubling.
+
+What it did fix decisively is calibration — confidence 0.797 -> 0.233, from
+wildly overconfident to roughly matched. Recognition is no longer actively
+lying about its own certainty, but 0.287 is nowhere near usable.
+
+Memory settings made no difference at all (identical 4,276 nodes and identical
+accuracy across three configurations). That is correct rather than a bug: with
+~4,300 nodes spread over ~16,000 pose cells the per-cell cap never binds. It
+confirms capacity was never the bottleneck.
 
 **This invalidates nothing in E1 -- all three arms shared the bug equally -- but
 it does mean E6 was testing action policies on top of a miscalibrated evidence
