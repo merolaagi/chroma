@@ -1,0 +1,20 @@
+{
+  "random": {
+    "steps": 13.2083,
+    "acc": 0.2083,
+    "s_per_ep": 0.1519
+  },
+  "greedy_eig": {
+    "steps": 13.2083,
+    "acc": 0.3333,
+    "s_per_ep": 0.3072
+  },
+  "mcts": {
+    "steps": 13.9167,
+    "acc": 0.1667,
+    "s_per_ep": 1.0228
+  },
+  "speedup_vs_random": 0.95,
+  "mcts_vs_greedy": 0.95,
+  "verdict": "NOT SUPPORTED - greedy or random is enough"
+}

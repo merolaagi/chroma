@@ -4,6 +4,7 @@ PY := $(shell command -v python 2>/dev/null || echo python3)
 
 test:            ## run the proposition suite
 	PYTHONPATH=. python tests/test_propositions.py
+	PYTHONPATH=. python tests/test_hypercube.py
 
 docs:            ## regenerate figures from results/ and rebuild the PDF
 	python docs/make_figures.py

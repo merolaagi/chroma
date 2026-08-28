@@ -1,0 +1,10 @@
+{
+  "n_states": 24,
+  "spearman_pooled": -0.142,
+  "spearman_per_state": -0.2799,
+  "gain_argmax_eig": 0.09149,
+  "gain_random_action": 0.092,
+  "memory_nodes": 4294,
+  "advantage": -0.00051,
+  "verdict": "BROKEN - do not trust E6; search maximises a bad target"
+}

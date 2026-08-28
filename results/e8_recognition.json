@@ -1,0 +1,22 @@
+{
+  "max_per_cell=3,cap=20000": {
+    "acc": 0.2875,
+    "x_chance": 3.45,
+    "nodes": 4276,
+    "conf": 0.2333
+  },
+  "max_per_cell=1,cap=60000": {
+    "acc": 0.2875,
+    "x_chance": 3.45,
+    "nodes": 4276,
+    "conf": 0.2333
+  },
+  "max_per_cell=2,cap=60000": {
+    "acc": 0.2875,
+    "x_chance": 3.45,
+    "nodes": 4276,
+    "conf": 0.2333
+  },
+  "best": "max_per_cell=3,cap=20000",
+  "verdict": "STILL BROKEN - recognition is the bottleneck"
+}
