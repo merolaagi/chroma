@@ -268,6 +268,40 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### E8: recognition was the bottleneck, and it was a bug (2026-08-26)
+
+Recognition accuracy sat at 0.21 against a 1/12 = 0.083 chance baseline, which
+made E1 and E6 comparisons between variants of a system that barely worked.
+E8 measures the base directly, with no search and no regulatory arms.
+
+The diagnostic was the *pairing*: accuracy 0.24 at confidence **0.80**. Not
+uncertain -- confidently wrong. That points at evidence accumulation, not at
+memory capacity (only ~2,800 nodes at this scale, far below any cap).
+
+`VotingBus.accumulate_batch` summed raw similarities, so evidence magnitude
+scaled with the **number of valid memory lookups** rather than with match
+quality. A hypothesis whose queried poses happened to fall in a densely explored
+region out-accumulated one that matched better but was queried where memory was
+sparse. The system was biased toward well-explored objects, not correct ones.
+
+Dividing by the valid-lookup count makes evidence a mean similarity, so
+hypotheses compete on fit rather than coverage:
+
+| | accuracy | x chance | confidence |
+|---|---|---|---|
+| sum (as shipped) | 0.240 | 2.88x | 0.797 |
+| **normalised** | **0.440** | **5.28x** | 0.224 |
+| normalised, tau=0.5 | 0.160 | 1.92x | 0.113 |
+
+Nearly double the accuracy and calibration goes from wildly overconfident to
+mildly underconfident. Still short of usable (0.44 is not 0.9), but the
+foundation is no longer actively broken.
+
+**This invalidates nothing in E1 -- all three arms shared the bug equally -- but
+it does mean E6 was testing action policies on top of a miscalibrated evidence
+model, which is the likeliest reason the EIG value function had no within-state
+ranking power.** Re-run E7 before drawing any conclusion about search.
+
 ### E6: active sensing (`chroma/search.py`) — implemented, NOT validated
 
 `world.sample_action()` picked displacements at random, which silently limited

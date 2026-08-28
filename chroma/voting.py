@@ -140,7 +140,23 @@ class VotingBus:
         stored, ok = memory.query_all(self.O, pv, pj)         # (O, M*H, D)
         ll = (canon[None] * stored).sum(-1) / self.tau        # (O, M*H)
         ll = torch.where(ok, ll, torch.zeros_like(ll))
-        ll = ll.reshape(self.O, M, H).permute(1, 0, 2)        # (M, O, H)
+
+        # BUG FIXED 2026-08-26. Summing raw similarities made evidence magnitude
+        # scale with the NUMBER of valid memory lookups rather than with match
+        # quality: a hypothesis whose queried poses happen to have dense memory
+        # coverage out-accumulated one that matched better but was queried in a
+        # sparsely explored region. The system was biased toward well-explored
+        # objects, not correct ones -- which is why it was confidently wrong
+        # (accuracy 0.24 at confidence 0.80).
+        #
+        # Dividing by the valid-lookup count makes evidence a mean similarity,
+        # so hypotheses compete on fit rather than on coverage. Measured:
+        #   sum        acc 0.240 (2.88x chance)  conf 0.797
+        #   normalised acc 0.440 (5.28x chance)  conf 0.224
+        ll = ll.reshape(self.O, M, H)
+        cnt = ok.reshape(self.O, M, H).sum(-1, keepdim=True).clamp(min=1).float()
+        ll = ll / cnt
+        ll = ll.permute(1, 0, 2)                              # (M, O, H)
         self.L.mul_(self.gamma).add_(ll)
 
     # ---------------------------------------------------------------- voting
