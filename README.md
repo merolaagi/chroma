@@ -268,6 +268,43 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### E9: the ceiling is 1.0, so recognition is a MODEL failure (2026-08-28)
+
+Before changing the model again it was worth asking whether 0.287 is anywhere
+near achievable. That question is answerable exactly: the generative model is
+fully known (our canvases, a deterministic sensor plus Gaussian noise, known
+displacements), so a Bayes-optimal observer can be written down and run.
+
+    P(o | patches) ∝ sum over initial poses p0 of
+                     prod over t of N(x_t ; patch(o, p0·d_1..t), sigma)
+
+Result, 324 pose hypotheses x 12 objects, sigma = 0.02:
+
+| touches | oracle accuracy | x chance |
+|---|---|---|
+| 1 | 0.438 | 5.25x |
+| 2 | 0.750 | 9.00x |
+| **3** | **1.000** | **12.00x** |
+| 12 | 1.000 | 12.00x |
+
+**A single touch from the optimal observer (0.438) beats CHROMA's twelve
+(0.287). Three touches saturate at perfect object AND pose recovery.**
+
+So the task is not hard, the world is not degenerate, and there is no ceiling
+anywhere near where CHROMA sits. The gap is **0.71 accuracy**, and it belongs
+entirely to the architecture: encoder, canonical memory, or evidence
+accumulation. Everything measured in E6, E7 and E8 was tuning around a defect
+four times larger than any effect those experiments could have detected.
+
+This is the diagnostic that should have been run first. It costs 90 seconds and
+would have redirected the whole search effort.
+
+Next: bisect the gap. The oracle differs from CHROMA in three places — it
+compares raw patches rather than learned latents, it enumerates all 324 poses
+rather than a 45-cell grid, and it uses an exact Gaussian likelihood rather than
+cosine similarity in latent space. Swapping them in one at a time localises the
+defect.
+
 ### Verdict on the search layer: cut it (2026-08-26)
 
 Three measurements of the same value function, at increasing levels of
