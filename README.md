@@ -28,6 +28,29 @@ One currency flows through all three: **prediction error in latent space**.
 
 ---
 
+## CHROMA Lab (interactive)
+
+```bash
+./run.sh          # http://localhost:51847
+```
+
+Eight panels, all driven by a live model — every one is a real forward pass, not
+a JavaScript reimplementation:
+
+1. **Tactile world** — eight sensor pads on an object; click or arrow-key to move
+2. **Predict → feel → error** — the fast loop, with what each pad actually feels
+3. **Voting & posterior** — pooled evidence across pads, against the chance line
+4. **Genes** — drag any of the 16 regulatory dimensions and watch downstream
+5. **Expression, enhancers, differentiation** — which programs each module runs,
+   its sparse enhancer mask, and how plastic it still is
+6. **Attractor landscape** — the basins in 2D; click one to jump the cell into it
+7. **Loop closure** — walk a closed path; transport lands exactly, residual doesn't
+8. **Mutation hypercube** — toggle mutations, split fitness into additive vs epistasis
+
+Panels 4–6 are the gene-manipulation surface: `g` is directly draggable, and
+expression, enhancer occupancy, differentiation and plasticity all update live.
+Panel 6 lets you move the cell between attractor basins by clicking.
+
 ## Start here: the plain-language explainer
 
 **[docs/CHROMA-explained.pdf](docs/CHROMA-explained.pdf)** — six pages, four

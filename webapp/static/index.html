@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHROMA Lab</title>
+<style>
+:root{
+  --bg:#12100E; --panel:#1B1815; --line:#2E2A25; --ink:#EDE9E2; --mute:#8C857A;
+  --teal:#3DBE9B; --coral:#E07A54; --purple:#8D82E8; --gold:#D9A441; --red:#D9534F;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;
+  align-items:baseline;gap:16px;flex-wrap:wrap}
+h1{font-size:16px;margin:0;letter-spacing:.02em}
+.sub{color:var(--mute);font-size:12px}
+.bar{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+button{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:6px;padding:6px 11px;font-size:12px;cursor:pointer;font-family:inherit}
+button:hover{border-color:var(--teal)}
+button.on{border-color:var(--teal);color:var(--teal)}
+button:disabled{opacity:.4;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;padding:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.card h2{font-size:12px;margin:0 0 3px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.card p.note{font-size:11px;color:var(--mute);margin:0 0 10px}
+canvas{width:100%;height:auto;display:block;border-radius:6px;background:#0C0B0A}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.kv{font-family:var(--mono);font-size:11px;color:var(--mute)}
+.kv b{color:var(--ink);font-weight:500}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+td,th{padding:2px 4px;text-align:right}th{color:var(--mute);font-weight:500}
+td.l,th.l{text-align:left}
+.cell{display:inline-block;width:13px;height:13px;border-radius:2px;margin:1px}
+input[type=range]{width:100%;accent-color:var(--teal);height:16px}
+.gene{display:grid;grid-template-columns:26px 1fr 42px;gap:6px;align-items:center;
+  font-family:var(--mono);font-size:10px;color:var(--mute)}
+.scroll{max-height:250px;overflow:auto}
+.bits{display:flex;gap:5px;flex-wrap:wrap}
+.bit{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);
+  background:#0C0B0A;color:var(--mute);font-family:var(--mono);font-size:11px;cursor:pointer}
+.bit.on{background:var(--coral);color:#12100E;border-color:var(--coral)}
+.tag{display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;
+  font-family:var(--mono);border:1px solid var(--line);color:var(--mute)}
+#err{color:var(--red);font-family:var(--mono);font-size:11px;padding:0 20px}
+</style></head><body>
+
+<header>
+  <h1>CHROMA Lab</h1>
+  <span class="sub">live model &mdash; every panel is a real forward pass</span>
+  <div class="bar">
+    <button onclick="train(300)" id="btrain">Train 300</button>
+    <button onclick="post('/api/reset',{seed:Math.floor(Math.random()*999)}).then(render)">New seed</button>
+    <button onclick="auto()" id="bauto">Auto-explore</button>
+  </div>
+</header>
+<div id="err"></div>
+
+<div class="grid">
+
+<div class="card">
+  <h2>1 &middot; Tactile world</h2>
+  <p class="note">Eight sensor pads on one object. Click the canvas to move the agent; arrow keys also work.</p>
+  <canvas id="world" width="360" height="360"></canvas>
+  <div class="row">
+    <button onclick="step(-1,0,0)">&larr;</button><button onclick="step(1,0,0)">&rarr;</button>
+    <button onclick="step(0,-1,0)">&uarr;</button><button onclick="step(0,1,0)">&darr;</button>
+    <button onclick="step(0,0,2)">rotate 90&deg;</button>
+    <button onclick="nextObj()">next object</button>
+  </div>
+  <div class="row kv" id="worldkv"></div>
+</div>
+
+<div class="card">
+  <h2>2 &middot; Predict &rarr; feel &rarr; error</h2>
+  <p class="note">The fast loop. Error in latent space is the one currency: it trains the predictor, weights the votes, and drives differentiation.</p>
+  <canvas id="errplot" width="360" height="150"></canvas>
+  <div id="patches" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+  <h2>3 &middot; Voting &amp; posterior</h2>
+  <p class="note">Each pad forms its own hypothesis; they pool evidence through known relative poses. Bar = P(object).</p>
+  <canvas id="post" width="360" height="160"></canvas>
+  <div class="row kv" id="postkv"></div>
+</div>
+
+<div class="card">
+  <h2>4 &middot; Genes &mdash; regulatory state g</h2>
+  <p class="note">The slow dial. Drag a gene and watch expression, plasticity and module identity change downstream.</p>
+  <div class="row">
+    <button onclick="post('/api/relax',{steps:60}).then(renderGenes)">Relax to basin</button>
+    <button onclick="randomiseGenes()">Randomise</button>
+    <button onclick="zeroGenes()">Zero</button>
+  </div>
+  <div class="scroll" id="genes" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+  <h2>5 &middot; Expression, enhancers, differentiation</h2>
+  <p class="note">Rows are modules. Left: which gene programs each expresses. Middle: its sparse enhancer mask over g. Right: how plastic it still is.</p>
+  <div id="express"></div>
+</div>
+
+<div class="card">
+  <h2>6 &middot; Attractor landscape</h2>
+  <p class="note">Basins of the regulatory dynamics, projected to 2D. Click a basin to jump the cell into it.</p>
+  <canvas id="attr" width="360" height="220"></canvas>
+  <div class="row kv" id="attrkv"></div>
+</div>
+
+<div class="card">
+  <h2>7 &middot; Loop closure (Proposition 1)</h2>
+  <p class="note">Walk a closed path and return. Transport alone must land exactly where it began; anything left over is the learned residual.</p>
+  <canvas id="loop" width="360" height="150"></canvas>
+  <div class="row"><button onclick="runLoop()">Walk a closed path</button></div>
+  <div class="row kv" id="loopkv"></div>
+</div>
+
+<div class="card">
+  <h2>8 &middot; Mutation hypercube</h2>
+  <p class="note">The same architecture, group swapped to (Z/2)^L. Toggle mutations; additive effect is exact, the remainder is epistasis.</p>
+  <div class="bits" id="bits"></div>
+  <canvas id="hyper" width="360" height="130" style="margin-top:10px"></canvas>
+  <div class="row kv" id="hyperkv"></div>
+  <div id="cycles" style="margin-top:8px"></div>
+</div>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let S=null,G=null,H=null,autoT=null;
+const C={teal:'#3DBE9B',coral:'#E07A54',purple:'#8D82E8',gold:'#D9A441',
+         mute:'#8C857A',line:'#2E2A25',red:'#D9534F'};
+
+function fail(e){$('err').textContent=e?('⚠ '+e):'';}
+async function get(u){const r=await fetch(u);const j=await r.json();
+  if(j.error)fail(j.error);else fail('');return j;}
+async function post(u,b){const r=await fetch(u,{method:'POST',
+  headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+  const j=await r.json();if(j.error)fail(j.error);else fail('');return j;}
+
+// ---------------------------------------------------------------- 1. world
+function drawWorld(){
+  const c=$('world'),x=c.getContext('2d'),N=S.canvas.length,u=c.width/N;
+  x.clearRect(0,0,c.width,c.height);
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const v=S.canvas[i][j];
+    if(v>0.01){x.fillStyle=`rgba(61,190,155,${0.12+0.78*v})`;x.fillRect(j*u,i*u,u,u);}
+  }
+  x.strokeStyle=C.line;x.lineWidth=.5;
+  for(let i=0;i<=N;i++){x.beginPath();x.moveTo(i*u,0);x.lineTo(i*u,c.width);x.stroke();
+    x.beginPath();x.moveTo(0,i*u);x.lineTo(c.width,i*u);x.stroke();}
+  S.sensors.forEach((s,k)=>{
+    const cx=(s[0]+N/2)*u,cy=(s[1]+N/2)*u;
+    x.strokeStyle=C.coral;x.lineWidth=1.5;x.beginPath();
+    x.arc(cx,cy,u*0.42,0,7);x.stroke();
+    x.fillStyle=C.coral;x.font='9px monospace';x.fillText(k,cx-3,cy+3);
+  });
+  const px=(S.pose[0]+N/2)*u,py=(S.pose[1]+N/2)*u;
+  x.fillStyle=C.gold;x.beginPath();x.arc(px,py,u*0.3,0,7);x.fill();
+  $('worldkv').innerHTML=`object <b>${S.object}</b>/${S.n_objects} &nbsp; regime <b>${S.regime}</b>
+    &nbsp; pose <b>${S.pose[0]},${S.pose[1]}·${S.pose[2]}</b> &nbsp; memory <b>${S.memory}</b>
+    &nbsp; eff.rank <b>${S.effective_rank}</b> &nbsp; min sd <b>${S.min_dim_std}</b>`;
+}
+$('world').onclick=e=>{const c=$('world'),r=c.getBoundingClientRect(),N=S.canvas.length;
+  const gx=Math.floor((e.clientX-r.left)/r.width*N)-N/2;
+  const gy=Math.floor((e.clientY-r.top)/r.height*N)-N/2;
+  step(Math.sign(gx-S.pose[0]),Math.sign(gy-S.pose[1]),0);};
+document.onkeydown=e=>{const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+  if(m[e.key]){e.preventDefault();step(m[e.key][0],m[e.key][1],0);}};
+
+// ------------------------------------------------------- 2. error + patches
+function drawErr(){
+  const c=$('errplot'),x=c.getContext('2d'),h=S.history;
+  x.clearRect(0,0,c.width,c.height);
+  if(!h.length)return;
+  const mx=Math.max(...h,1e-6),w=c.width/Math.max(h.length-1,1);
+  x.strokeStyle=C.line;x.beginPath();x.moveTo(0,c.height-1);x.lineTo(c.width,c.height-1);x.stroke();
+  x.strokeStyle=C.coral;x.lineWidth=1.6;x.beginPath();
+  h.forEach((v,i)=>{const y=c.height-6-(v/mx)*(c.height-16);
+    i?x.lineTo(i*w,y):x.moveTo(i*w,y);});x.stroke();
+  x.fillStyle=C.mute;x.font='10px monospace';
+  x.fillText('prediction error  max '+mx.toFixed(4),6,12);
+  const p=S.patches,n=Math.min(p.length,8);
+  let html='<div class="kv" style="margin-bottom:4px">what each pad feels</div>';
+  for(let k=0;k<n;k++){html+='<span style="display:inline-block;margin:2px 6px 2px 0">';
+    for(let i=0;i<9;i++){const v=Math.max(0,Math.min(1,p[k][i]));
+      html+=`<span class="cell" style="background:rgba(61,190,155,${0.08+0.9*v})"></span>`;
+      if(i%3===2)html+='<br>';}
+    html+='</span>';}
+  $('patches').innerHTML=html;
+}
+
+// ---------------------------------------------------------- 3. posterior
+function drawPost(){
+  const c=$('post'),x=c.getContext('2d'),p=S.posterior;
+  x.clearRect(0,0,c.width,c.height);
+  const w=c.width/p.length,mx=Math.max(...p,1e-6);
+  p.forEach((v,i)=>{const h=(v/mx)*(c.height-24);
+    x.fillStyle=i===S.object?C.teal:C.line;
+    x.fillRect(i*w+2,c.height-16-h,w-4,h);
+    x.fillStyle=C.mute;x.font='9px monospace';x.fillText(i,i*w+w/2-3,c.height-4);});
+  const best=p.indexOf(Math.max(...p));
+  $('postkv').innerHTML=`top guess <b>${best}</b> at <b>${(100*p[best]).toFixed(1)}%</b>
+    &nbsp; truth <b>${S.object}</b> &nbsp; ${best===S.object?'<span class="tag" style="color:#3DBE9B">correct</span>':'<span class="tag" style="color:#D9534F">wrong</span>'}
+    &nbsp; chance <b>${(100/p.length).toFixed(1)}%</b>`;
+}
+
+// ------------------------------------------------------------- 4/5. genes
+function renderGenes(g){
+  G=g||G;if(!G)return;
+  $('genes').innerHTML=G.g.map((v,i)=>`<div class="gene"><span>g${i}</span>
+    <input type="range" min="-3" max="3" step="0.05" value="${v}"
+      oninput="setGene(${i},this.value)"><span>${v.toFixed(2)}</span></div>`).join('');
+  const E=G.expression,M=E.length,K=E[0].length;
+  const mx=Math.max(...E.flat(),1e-6);
+  let h='<table><tr><th class="l">module</th><th class="l">programs</th><th class="l">enhancer</th><th>plastic</th></tr>';
+  for(let m=0;m<M;m++){
+    let pr='';for(let k=0;k<K;k++)pr+=`<span class="cell" title="program ${k}: ${E[m][k].toFixed(3)}"
+      style="background:rgba(141,130,232,${0.06+0.94*E[m][k]/mx})"></span>`;
+    let mk='';G.mask[m].forEach((b,i)=>mk+=`<span class="cell" title="g${i}"
+      style="background:${b?C.gold:'#0C0B0A'};border:1px solid ${C.line}"></span>`);
+    const pl=G.plasticity[m];
+    h+=`<tr><td class="l">${m}</td><td class="l">${pr}</td><td class="l">${mk}</td>
+        <td style="color:${pl>0.5?C.teal:pl>0.1?C.gold:C.red}">${pl.toFixed(2)}</td></tr>`;
+  }
+  h+='</table>';
+  h+=`<div class="kv" style="margin-top:8px">mean D <b>${(G.differentiation.reduce((a,b)=>a+b,0)/M).toFixed(3)}</b>
+      &nbsp; eps* <b>${G.eps_star}</b> ${G.energy!==null?`&nbsp; energy <b>${G.energy}</b>`:''}
+      <br>gold = open enhancer site &middot; purple = expression &middot; plastic 1.00 means fully trainable, 0.00 locked</div>`;
+  $('express').innerHTML=h;
+}
+let geneT=null;
+function setGene(i,v){clearTimeout(geneT);
+  geneT=setTimeout(async()=>renderGenes(await post('/api/gene',{index:+i,value:+v})),60);}
+async function randomiseGenes(){
+  renderGenes(await post('/api/genes',{values:G.g.map(()=>+(Math.random()*4-2).toFixed(2))}));}
+async function zeroGenes(){renderGenes(await post('/api/genes',{values:G.g.map(()=>0)}));}
+
+// ------------------------------------------------------------ 6. attractors
+async function drawAttr(){
+  const a=await get('/api/attractors'),c=$('attr'),x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+  const pts=a.centres.concat([a.current]);
+  if(!pts.length)return;
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const sx=v=>30+(v-x0)/((x1-x0)||1)*(c.width-60);
+  const sy=v=>25+(v-y0)/((y1-y0)||1)*(c.height-50);
+  const mc=Math.max(...a.counts,1);
+  a.centres.forEach((p,i)=>{
+    const r=8+16*a.counts[i]/mc;
+    x.fillStyle='rgba(141,130,232,.16)';x.beginPath();x.arc(sx(p[0]),sy(p[1]),r,0,7);x.fill();
+    x.strokeStyle=C.purple;x.lineWidth=1;x.stroke();
+    x.fillStyle=C.mute;x.font='10px monospace';x.fillText(i,sx(p[0])-3,sy(p[1])+3);});
+  x.fillStyle=C.gold;x.beginPath();x.arc(sx(a.current[0]),sy(a.current[1]),5,0,7);x.fill();
+  $('attr').dataset.pts=JSON.stringify(a.centres.map(p=>[sx(p[0]),sy(p[1])]));
+  $('attrkv').innerHTML=`<b>${a.centres.length}</b> basins &nbsp; gold dot = current cell state
+    &nbsp; circle size = basin width`;
+}
+$('attr').onclick=async e=>{
+  const pts=JSON.parse($('attr').dataset.pts||'[]'),r=$('attr').getBoundingClientRect();
+  const mx=(e.clientX-r.left)/r.width*$('attr').width,my=(e.clientY-r.top)/r.height*$('attr').height;
+  let bi=-1,bd=1e9;pts.forEach((p,i)=>{const d=(p[0]-mx)**2+(p[1]-my)**2;if(d<bd){bd=d;bi=i;}});
+  if(bi>=0&&bd<900){renderGenes(await post('/api/basin',{index:bi}));drawAttr();}};
+
+// ------------------------------------------------------------- 7. loop
+async function runLoop(){
+  const L=await get('/api/loop'),c=$('loop'),x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+  const d=L.transport_only,mx=Math.max(...d,1e-9),w=c.width/Math.max(d.length-1,1);
+  x.strokeStyle=C.teal;x.lineWidth=1.8;x.beginPath();
+  d.forEach((v,i)=>{const y=c.height-20-(v/(mx||1))*(c.height-40);
+    i?x.lineTo(i*w,y):x.moveTo(i*w,y);});x.stroke();
+  x.fillStyle=C.mute;x.font='10px monospace';
+  x.fillText('distance from start, per step of the closed path',6,12);
+  $('loopkv').innerHTML=`transport only, back at start: <b style="color:${C.teal}">${L.transport_final.toExponential(2)}</b>
+    &nbsp; with learned residual: <b style="color:${C.coral}">${L.with_residual}</b>
+    <br>The first number is float noise &mdash; exact by construction. The second is everything geometry cannot explain.`;
+}
+
+// --------------------------------------------------------- 8. hypercube
+async function drawHyper(h){
+  H=h||await get('/api/hypercube');
+  $('bits').innerHTML=H.genotype.map((b,i)=>
+    `<button class="bit ${b?'on':''}" onclick="toggleSite(${i})">${i}</button>`).join('');
+  const c=$('hyper'),x=c.getContext('2d'),y=H.landscape;
+  x.clearRect(0,0,c.width,c.height);
+  const mn=Math.min(...y),mx=Math.max(...y),w=c.width/y.length;
+  const cur=H.genotype.reduce((a,b,i)=>a+(b<<i),0);
+  y.forEach((v,i)=>{const hh=((v-mn)/((mx-mn)||1))*(c.height-26);
+    x.fillStyle=i===cur?C.gold:C.line;x.fillRect(i*w,c.height-14-hh,Math.max(w-0.5,1),hh);});
+  x.fillStyle=C.mute;x.font='10px monospace';x.fillText('all 256 genotypes, gold = current',6,12);
+  $('hyperkv').innerHTML=`fitness <b>${H.fitness}</b> = additive <b style="color:${C.teal}">${H.additive_only}</b>
+    + epistasis <b style="color:${C.coral}">${H.epistasis}</b>`;
+  $('cycles').innerHTML='<div class="kv">double-mutant cycles in this background</div>'+
+    (H.cycles.length?H.cycles.map(e=>`<span class="tag" style="margin:2px;color:${e.value>0?C.teal:C.coral}">
+      ${e.sites[0]}&times;${e.sites[1]} ${e.value>0?'+':''}${e.value}</span>`).join(''):
+      '<span class="kv">none &mdash; purely additive here</span>');
+}
+async function toggleSite(i){drawHyper(await post('/api/site',{index:i}));}
+
+// ------------------------------------------------------------------ driver
+async function render(s){S=s||await get('/api/state');G=S.genes;
+  drawWorld();drawErr();drawPost();renderGenes();}
+async function step(dx,dy,dj){render(await post('/api/step',{dx,dy,dj}));}
+async function nextObj(){render(await post('/api/object',{index:(S.object+1)%S.n_objects}));}
+async function train(n){const b=$('btrain');b.disabled=true;b.textContent='training…';
+  render(await post('/api/train',{steps:n}));b.disabled=false;b.textContent='Train 300';drawAttr();}
+function auto(){const b=$('bauto');
+  if(autoT){clearInterval(autoT);autoT=null;b.classList.remove('on');b.textContent='Auto-explore';return;}
+  b.classList.add('on');b.textContent='Stop';
+  autoT=setInterval(()=>step(Math.floor(Math.random()*3)-1,Math.floor(Math.random()*3)-1,
+    Math.random()<0.25?2:0),650);}
+
+render();drawAttr();drawHyper();
+</script></body></html>
