@@ -31,8 +31,53 @@ One currency flows through all three: **prediction error in latent space**.
 ## CHROMA Lab (interactive)
 
 ```bash
-./run.sh          # http://localhost:51847
+./run.sh                  # foreground, http://localhost:51847
+tools/serve.sh start      # background service (pidfile, logs/lab.log)
+tools/serve.sh status|restart|stop|log
 ```
+
+### Serving publicly at chroma.fueldeskpro.com
+
+The lab binds `0.0.0.0`, so the existing fueldesk cloudflared tunnel only needs
+one more ingress rule. Add it **above** the catch-all `http_status: 404` entry
+in the tunnel config (`~/.cloudflared/config.yml` or wherever that tunnel's
+config lives):
+
+```yaml
+ingress:
+  # ... existing hostnames ...
+  - hostname: chroma.fueldeskpro.com
+    service: http://localhost:51847
+  - service: http_status:404      # must stay last
+```
+
+Then restart the tunnel and the lab:
+
+```bash
+cloudflared tunnel list                    # note the tunnel UUID
+sudo launchctl kickstart -k system/com.cloudflare.cloudflared 2>/dev/null \
+  || pkill -f 'cloudflared tunnel' && cloudflared tunnel run <TUNNEL-NAME> &
+tools/serve.sh restart
+```
+
+The CNAME target is the tunnel's UUID with `.cfargotunnel.com` appended:
+
+```
+chroma   CNAME   <TUNNEL-UUID>.cfargotunnel.com    (proxied)
+```
+
+`cloudflared tunnel list` prints the UUID in its first column. Alternatively
+`cloudflared tunnel route dns <TUNNEL-NAME> chroma.fueldeskpro.com` creates the
+record for you.
+
+### Applying a new archive
+
+```bash
+tools/sync.sh ~/Downloads/chroma-YYYY-MM-DD-vNN.tar.gz
+```
+
+Extracts, preserves `.git`/`.venv`/`logs`/`results`, commits using the top
+heading of `CHANGES.md` as the message, pushes, and restarts the lab.
 
 Eight panels, all driven by a live model — every one is a real forward pass, not
 a JavaScript reimplementation:

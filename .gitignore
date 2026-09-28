@@ -10,3 +10,5 @@ build/
 runs/
 checkpoints/
 *.pt
+.lab.pid
+logs/

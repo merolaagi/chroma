@@ -334,7 +334,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else PORT
+    import os
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(
+        os.environ.get("CHROMA_PORT", PORT))
     print(f"CHROMA Lab  ->  http://localhost:{port}")
     print("  model is live: every panel is a real forward pass")
     ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()

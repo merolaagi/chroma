@@ -1,0 +1,28 @@
+{
+  "chance": 0.0833,
+  "chroma_e8_acc": 0.287,
+  "touches=4": {
+    "oracle_acc": 0.925,
+    "oracle_acc_with_pose": 0.925,
+    "n_hypotheses": 324,
+    "touches": 4,
+    "sigma": 0.02
+  },
+  "touches=12": {
+    "oracle_acc": 1.0,
+    "oracle_acc_with_pose": 1.0,
+    "n_hypotheses": 324,
+    "touches": 12,
+    "sigma": 0.02
+  },
+  "touches=24": {
+    "oracle_acc": 1.0,
+    "oracle_acc_with_pose": 1.0,
+    "n_hypotheses": 324,
+    "touches": 24,
+    "sigma": 0.02
+  },
+  "ceiling": 1.0,
+  "chroma_gap": 0.713,
+  "verdict": "MODEL GAP - the architecture is leaving accuracy on the table"
+}
