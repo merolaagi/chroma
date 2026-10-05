@@ -336,6 +336,50 @@ expression space. No lineage-like progressive branching at this scale. Likely
 under-trained (the `L0` enhancer target has not converged in 320 steps), but
 reported as measured.
 
+### E10: bisecting the gap, and a prediction that failed (2026-10-04)
+
+E9 put the ceiling at 1.000 and CHROMA at 0.287, so the gap is the
+architecture's. E10 bisects it. The oracle differs from CHROMA in three
+independent places, so all eight combinations can be run:
+
+| representation | poses | likelihood | accuracy |
+|---|---|---|---|
+| latent | ±2 | cosine | **0.200** ← as shipped |
+| latent | ±2 | gaussian | 0.400 |
+| latent | ±4 | cosine | **0.700** |
+| latent | ±4 | gaussian | **0.800** ← best |
+| raw | ±2 | cosine | 0.400 |
+| raw | ±2 | gaussian | 0.700 |
+| raw | ±4 | cosine | 0.600 |
+| raw | ±4 | gaussian | 0.700 |
+
+Single-switch gains: **hypothesis set +0.500**, representation +0.200,
+likelihood +0.200. The agent samples poses over ±4 while `HypothesisGrid`
+spanned ±2, so it routinely stood outside its own hypothesis set.
+
+**The prediction failed.** Widening the grid in the real pipeline moved nothing:
+
+| grid extent | hypotheses | accuracy | confidence |
+|---|---|---|---|
+| 2 | 200 | 0.250 | 0.224 |
+| 4 | 648 | 0.250 | 0.132 |
+
+The harness built its templates from ground truth rather than from the learned
+memory — deliberately, to isolate the comparison from memory coverage. That
+choice is exactly what invalidated the result: it removed the component that
+actually limits the shipped system. **An ablation that deletes the suspected
+bottleneck in order to study something else cannot then be used to predict the
+un-ablated system.**
+
+What it does establish, on the idealised recogniser: once the grid covers the
+poses, the learned latents *beat* raw patches (0.800 vs 0.700). The earlier
+suspicion that the JEPA representation discards identity information was wrong.
+
+`grid_extent` now defaults to 4 because it is correct, not because it helps.
+The open question is unchanged, and now better localised: something in the
+memory path — write policy, prototype quality, or lookup — caps recognition at
+roughly 3x chance regardless of everything downstream.
+
 ### E9: the ceiling is 1.0, so recognition is a MODEL failure (2026-08-28)
 
 Before changing the model again it was worth asking whether 0.287 is anywhere

@@ -1,5 +1,16 @@
 # Changes
 
+## v19 — E10 bisection, and a prediction that failed
+- `experiments/e10_bisect.py`: eight-way bisection of the gap between CHROMA and
+  the Bayes-optimal observer of E9
+- On an idealised recogniser the hypothesis grid dominates (+0.500 against
+  +0.200 each for representation and likelihood)
+- **It does not transfer.** End to end the grid change moves nothing: 0.250 at
+  extent 2, 0.250 at extent 4. The harness built templates from ground truth,
+  which removed memory — the very thing that limits the real pipeline
+- `grid_extent` defaulted to 4 anyway: correct, just not the fix
+- Server answers HEAD, so `curl -I` no longer returns 501
+
 ## v18 — public serving at chroma.fueldeskpro.com
 - Cloudflare tunnel ingress documented; `tools/serve.sh` runs the lab as a
   background service with a pidfile so restarts are idempotent

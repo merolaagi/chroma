@@ -65,6 +65,18 @@ class ChromaConfig:
     n_modules: int = 8
     patch: int = 3
     n_objects: int = 12
+    grid_extent: int = 4     # Covers TactileWorld.pose_range, so the true pose
+                             # is always inside the hypothesis set.
+                             #
+                             # Do NOT read this as the fix for recognition. E10
+                             # bisected an idealised recogniser (templates built
+                             # from ground truth) and found the grid dominant
+                             # there: 0.200 -> 0.700. End to end, through the
+                             # learned memory, widening it changes nothing:
+                             # extent 2 -> 0.250, extent 4 -> 0.250. The real
+                             # pipeline is limited upstream, by memory, not by
+                             # the hypothesis set. Kept at 4 because it is
+                             # correct, not because it helps.
     # Section 5 - loss weights
     alpha_loop: float = 1.0
     beta_vote: float = 0.3
@@ -133,7 +145,7 @@ class CHROMA(nn.Module):
 
         # --- Section 3 / 6: memory and voting --------------------------------
         self.memory = CanonicalMemory(self.rep)
-        self.grid = HypothesisGrid(self.rep, extent=2, stride=1.0)
+        self.grid = HypothesisGrid(self.rep, extent=cfg.grid_extent, stride=1.0)
         self.bus = VotingBus(self.rep, self.grid, cfg.n_modules, cfg.n_objects)
 
         self.monitor = CollapseMonitor(D)

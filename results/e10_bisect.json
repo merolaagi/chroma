@@ -1,0 +1,31 @@
+{
+  "idealised_recogniser": {
+    "latent/grid/cosine": 0.2,
+    "latent/grid/gauss": 0.4,
+    "latent/full/cosine": 0.7,
+    "latent/full/gauss": 0.8,
+    "raw/grid/cosine": 0.4,
+    "raw/grid/gauss": 0.7,
+    "raw/full/cosine": 0.6,
+    "raw/full/gauss": 0.7
+  },
+  "single_switch_gain": {
+    "representation": 0.2,
+    "hypothesis_set": 0.5,
+    "likelihood": 0.2
+  },
+  "end_to_end_real_pipeline": {
+    "extent_2": {
+      "hyps": 200,
+      "acc": 0.25,
+      "conf": 0.224
+    },
+    "extent_4": {
+      "hyps": 648,
+      "acc": 0.25,
+      "conf": 0.132
+    }
+  },
+  "verdict": "bisection does not transfer; templates were built from ground truth, removing the memory that limits the real system",
+  "n_episodes": 10
+}

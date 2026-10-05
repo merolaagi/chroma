@@ -295,6 +295,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(LAB.loop_drift())
         self._send({"error": "not found"}, 404)
 
+    def do_HEAD(self):
+        self.do_GET()
+
     def do_POST(self):
         n = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(n) or "{}")
