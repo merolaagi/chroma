@@ -79,8 +79,9 @@ tools/sync.sh ~/Downloads/chroma-YYYY-MM-DD-vNN.tar.gz
 Extracts, preserves `.git`/`.venv`/`logs`/`results`, commits using the top
 heading of `CHANGES.md` as the message, pushes, and restarts the lab.
 
-Eight panels, all driven by a live model — every one is a real forward pass, not
-a JavaScript reimplementation:
+Styled with the Ink UI kit (`webapp/static/ink.css`, `ink.js`): docs-style shell,
+section tabs, ⌘K search, light and dark. Eight panels, all driven by a live model
+— every one is a real forward pass, not a JavaScript reimplementation:
 
 1. **Tactile world** — eight sensor pads on an object; click or arrow-key to move
 2. **Predict → feel → error** — the fast loop, with what each pad actually feels

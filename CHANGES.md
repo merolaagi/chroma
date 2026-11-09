@@ -1,5 +1,23 @@
 # Changes
 
+## v21 — enhancer gates were drawn as binary and are not
+- `gene_state` reported `int(gate > 0.5)`, which drew 120 of 128 partially-open
+  sites as fully closed. The page claimed a module did not read a gene while
+  moving that gene still changed its expression by 0.33
+- The gate is a continuous hard-concrete value (measured range 0.026-0.593 on an
+  untrained model). It is now sent as-is and shaded, with an outline above 0.5
+- Verified against the live model in headless Chrome, not fixtures: all eight
+  pages render, and a gene drag propagates to the module table
+
+## v20 — CHROMA Lab in the Ink look
+- Rebuilt the lab UI on the Ink kit: docs-style shell, section tabs built from the
+  rail groups, ⌘K search, "On this page", light and dark themes
+- Eight panels regrouped into Sensorimotor / Regulation / Theory
+- Error, posterior and loop-closure figures now use `Ink.line` / `Ink.bar`;
+  module table uses Ink table rules; world, attractor and landscape canvases
+  draw from Ink colour tokens so they follow the theme
+- Server gained a `/static/` route — the kit files could not load without it
+
 ## v19 — E10 bisection, and a prediction that failed
 - `experiments/e10_bisect.py`: eight-way bisection of the gap between CHROMA and
   the Bayes-optimal observer of E9

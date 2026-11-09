@@ -145,12 +145,17 @@ class Lab:
     def gene_state(self):
         g = self.model.regulator.g
         e = self.model.readout(g, hard=True)
-        mask = self.model.readout.mask(hard=True)
+        mask = self.model.readout.mask(hard=True).detach()
         D = self.model.diff.D
         return dict(
             g=[round(float(v), 4) for v in g],
             expression=[[round(float(v), 4) for v in row] for row in e],
-            mask=[[int(v > 0.5) for v in row] for row in mask],
+            # The hard-concrete gate is CONTINUOUS, not binary. Reporting
+            # int(v > 0.5) drew 120 of 128 partially-open sites as fully
+            # closed, so the page claimed a gene was unread while moving it
+            # still changed expression. Send the real value and let the UI
+            # shade it.
+            mask=[[round(float(v), 3) for v in row] for row in mask],
             differentiation=[round(float(v), 4) for v in D],
             plasticity=[round(float(v), 4) for v in self.model.diff.lr_scale()],
             ebar=[round(float(v), 5) for v in self.model.diff.ebar],
@@ -282,6 +287,15 @@ class Handler(BaseHTTPRequestHandler):
         if p in ("/", "/index.html"):
             return self._send((STATIC / "index.html").read_text(), 200,
                               "text/html; charset=utf-8")
+        if p.startswith("/static/"):
+            name = p[len("/static/"):]
+            f = (STATIC / name).resolve()
+            if STATIC.resolve() in f.parents and f.is_file():
+                ct = {"css": "text/css", "js": "application/javascript",
+                      "svg": "image/svg+xml"}.get(name.rsplit(".", 1)[-1],
+                                                  "text/plain")
+                return self._send(f.read_text(), 200, f"{ct}; charset=utf-8")
+            return self._send({"error": "not found"}, 404)
         with LOCK:
             if p == "/api/state":
                 return self._send(LAB.snapshot())
